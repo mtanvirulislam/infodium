@@ -1,0 +1,41 @@
+version: '3'
+services:
+    sftp:
+        image: atmoz/sftp:latest
+        volumes:
+            - ./volume/sftp:/home/sftp
+        ports:
+            - "2222:22"
+        networks: 
+            - external
+            - internal
+        command: sftp:sftp:1001
+    eventgen:
+        image: eventgen
+        networks: 
+            - internal
+        links: 
+            - sftp
+        depends_on: 
+            - sftp
+        environment: 
+            SFTP_HOST: sftp
+            SFTP_USER: sftp
+            SFTP_PASSWORD: sftp
+            SFTP_PORT: 22
+            OUTPUT_PREFIX: FOOTBALL_EVENTS
+            FILE_ELEMENT: 5
+            INPUT_FILE: event_test.csv
+networks: 
+    external: 
+        driver: bridge
+        ipam: 
+            config: 
+                - subnet: 10.5.0.0/16
+                  gateway: 10.5.0.1
+    internal: 
+        driver: bridge
+        ipam: 
+            config: 
+                - subnet: 10.6.0.0/16
+                  gateway: 10.6.0.1
