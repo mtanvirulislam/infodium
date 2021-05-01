@@ -1,7 +1,43 @@
 version: '3'
 services:
+    elasticsearch:
+        image: elasticsearch:7.12.1
+        container_name: elasticsearch
+        environment:
+            - cluster.name=docker-cluster
+            - xpack.security.enabled=false
+            - "ES_JAVA_OPTS=-Xms512m -Xmx512m"
+            - discovery.type=single-node
+        ulimits:
+            memlock:
+                soft: -1
+                hard: -1
+            nofile:
+                soft: 65536
+                hard: 65536
+        volumes:
+            - ./volume/elasticsearch:/usr/share/elasticsearch/data
+        ports:
+            - 9200:9200
+            - 9300:9300
+        networks: 
+            - internal
+
+    kibana:
+        container_name: kibana
+        image: kibana:7.12.1
+        environment:
+            - ELASTICSEARCH_HOSTS=http://elasticsearch:9200
+        ports: 
+            - 5601:5601
+        depends_on: 
+            - elasticsearch
+        networks: 
+            - internal
+
     sftp:
         image: atmoz/sftp:latest
+        container_name: sftp
         volumes:
             - ./volume/sftp:/home/sftp
         ports:
@@ -10,16 +46,20 @@ services:
             - external
             - internal
         command: sftp:sftp:1001
+
     mysql:
         image: mysql:latest
+        container_name: mysql
         ports:
             - "3306:3306"
         networks: 
             - internal
         environment:
             MYSQL_ROOT_PASSWORD: 123456
+
     eventgen:
         image: eventgen
+        container_name: eventgenerator
         networks: 
             - internal
         links: 
@@ -35,14 +75,17 @@ services:
             OUTPUT_PREFIX: FOOTBALL_EVENTS
             FILE_ELEMENT: 5
             INPUT_FILE: event_test.csv
+            
 networks: 
     external: 
+        name: external_network
         driver: bridge
         ipam: 
             config: 
                 - subnet: 10.5.0.0/16
                   gateway: 10.5.0.1
     internal: 
+        name: internal_network
         driver: bridge
         ipam: 
             config: 
