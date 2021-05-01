@@ -10,6 +10,14 @@ services:
             - external
             - internal
         command: sftp:sftp:1001
+    mysql:
+        image: mysql:latest
+        ports:
+            - "3306:3306"
+        networks: 
+            - internal
+        environment:
+            MYSQL_ROOT_PASSWORD: 123456
     eventgen:
         image: eventgen
         networks: 
@@ -18,6 +26,7 @@ services:
             - sftp
         depends_on: 
             - sftp
+            - mysql
         environment: 
             SFTP_HOST: sftp
             SFTP_USER: sftp
