@@ -1,5 +1,34 @@
 version: '3'
 services:
+    zookeeper:
+        image: bitnami/zookeeper:latest
+        container_name: zookeeper
+        ports:
+            - 2181:2181
+        networks: 
+            - internal
+        environment:
+            - ALLOW_ANONYMOUS_LOGIN=yes
+
+    kafka:
+        image: bitnami/kafka:latest
+        container_name: kafka
+        ports:
+            - 9092:9092
+        networks: 
+            - internal
+        environment:
+            - KAFKA_BROKER_ID=1
+            - KAFKA_ADVERTISED_LISTENERS=INSIDE://:9094,OUTSIDE://localhost:9092
+            - KAFKA_LISTENERS=INSIDE://:9094,OUTSIDE://:9092
+            - KAFKA_INTER_BROKER_LISTENER_NAME=INSIDE
+            - KAFKA_LISTENER_SECURITY_PROTOCOL_MAP=INSIDE:PLAINTEXT,OUTSIDE:PLAINTEXT
+            - KAFKA_ZOOKEEPER_CONNECT=zookeeper:2181
+            - ALLOW_PLAINTEXT_LISTENER=yes
+            - KAFKA_CREATE_TOPICS="football:1:1"
+        depends_on:
+            - zookeeper
+            
     elasticsearch:
         image: elasticsearch:7.12.1
         container_name: elasticsearch
@@ -41,7 +70,7 @@ services:
         volumes:
             - ./volume/sftp:/home/sftp
         ports:
-            - "2222:22"
+            - 2222:22
         networks: 
             - external
             - internal
@@ -51,7 +80,7 @@ services:
         image: mysql:latest
         container_name: mysql
         ports:
-            - "3306:3306"
+            - 3306:3306
         networks: 
             - internal
         environment:
@@ -68,13 +97,13 @@ services:
             - sftp
             - mysql
         environment: 
-            SFTP_HOST: sftp
-            SFTP_USER: sftp
-            SFTP_PASSWORD: sftp
-            SFTP_PORT: 22
-            OUTPUT_PREFIX: FOOTBALL_EVENTS
-            FILE_ELEMENT: 5
-            INPUT_FILE: event_test.csv
+            - SFTP_HOST=sftp
+            - SFTP_USER=sftp
+            - SFTP_PASSWORD=sftp
+            - SFTP_PORT=22
+            - OUTPUT_PREFIX=FOOTBALL_EVENTS
+            - FILE_ELEMENT=5
+            - INPUT_FILE=event_test.csv
             
 networks: 
     external: 
