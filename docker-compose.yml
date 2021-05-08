@@ -1,5 +1,6 @@
 version: '3'
 services:
+#---------------------------- ZOOKEEPER ----------------------------#
     zookeeper:
         image: bitnami/zookeeper:latest
         container_name: zookeeper
@@ -9,12 +10,14 @@ services:
             - internal
         environment:
             - ALLOW_ANONYMOUS_LOGIN=yes
-
+#-------------------------------------------------------------------#
+#------------------------------ KAFKA ------------------------------#
     kafka:
         image: bitnami/kafka:latest
         container_name: kafka
         ports:
             - 9092:9092
+            - 9094:9094
         networks: 
             - internal
         environment:
@@ -28,7 +31,19 @@ services:
             - KAFKA_CREATE_TOPICS="football:1:1"
         depends_on:
             - zookeeper
-            
+#-------------------------------------------------------------------#
+#----------------------------- FLUME -------------------------------#
+    flume:
+        build: ./flume
+        image: flume
+        container_name: flume
+        networks: 
+            - internal
+        depends_on:
+            - sftp
+            - kafka
+#-------------------------------------------------------------------#
+#------------------------- ELASSTICSEARCH --------------------------#
     elasticsearch:
         image: elasticsearch:7.12.1
         container_name: elasticsearch
@@ -51,7 +66,8 @@ services:
             - 9300:9300
         networks: 
             - internal
-
+#-------------------------------------------------------------------#
+#------------------------------ KIBANA -----------------------------#
     kibana:
         container_name: kibana
         image: kibana:7.12.1
@@ -63,7 +79,8 @@ services:
             - elasticsearch
         networks: 
             - internal
-
+#-------------------------------------------------------------------#
+#------------------------------ SFTP -------------------------------#
     sftp:
         image: atmoz/sftp:latest
         container_name: sftp
@@ -75,7 +92,8 @@ services:
             - external
             - internal
         command: sftp:sftp:1001
-
+#-------------------------------------------------------------------#
+#------------------------------ MYSQL ------------------------------#
     mysql:
         image: mysql:latest
         container_name: mysql
@@ -85,17 +103,18 @@ services:
             - internal
         environment:
             MYSQL_ROOT_PASSWORD: 123456
-
+#-------------------------------------------------------------------#
+#------------------------- EVENT GENERATOR -------------------------#
     eventgen:
+        build: ./eventgen
         image: eventgen
         container_name: eventgenerator
         networks: 
             - internal
-        links: 
-            - sftp
         depends_on: 
             - sftp
             - mysql
+            - flume
         environment: 
             - SFTP_HOST=sftp
             - SFTP_USER=sftp
@@ -104,7 +123,8 @@ services:
             - OUTPUT_PREFIX=FOOTBALL_EVENTS
             - FILE_ELEMENT=5
             - INPUT_FILE=event_test.csv
-            
+#-------------------------------------------------------------------#
+#----------------------------- NETWORKS ----------------------------#    
 networks: 
     external: 
         name: external_network
@@ -120,3 +140,4 @@ networks:
             config: 
                 - subnet: 10.6.0.0/16
                   gateway: 10.6.0.1
+#-------------------------------------------------------------------#
