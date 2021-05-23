@@ -102,7 +102,7 @@ services:
         networks: 
             - internal
         environment:
-            MYSQL_ROOT_PASSWORD: 123456
+            - MYSQL_ROOT_PASSWORD=123456
 #-------------------------------------------------------------------#
 #------------------------- EVENT GENERATOR -------------------------#
     eventgen:
@@ -116,13 +116,19 @@ services:
             - mysql
             - flume
         environment: 
+            - MYSQL_HOST=mysql
+            - MYSQL_USER=root
+            - MYSQL_PASS=123456
+            - MYSQL_DATABASE=football
             - SFTP_HOST=sftp
             - SFTP_USER=sftp
             - SFTP_PASSWORD=sftp
             - SFTP_PORT=22
             - OUTPUT_PREFIX=FOOTBALL_EVENTS
             - FILE_ELEMENT=5
+            - DATA_DIR=/eventgen/resources/data
             - INPUT_FILE=event_test.csv
+            - DELAY=10
 #-------------------------------------------------------------------#
 #----------------------------- NETWORKS ----------------------------#    
 networks: 
