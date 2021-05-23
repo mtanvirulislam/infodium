@@ -1,4 +1,4 @@
-FROM python:3.8
+FROM python:3.9
 
 # Create tmp dir
 RUN mkdir -p /tmp/sftp_cache;
@@ -9,11 +9,11 @@ WORKDIR /eventgen
 # copy the dependencies file to the working directory
 COPY resources/ /eventgen/resources
 
-# install depen12   <dencies
+# install dependencies
 RUN pip install -r /eventgen/resources/requirements.txt
 
 # copy the content of the local src directory to the working directory
 COPY src/ /eventgen/app
 
 # Run event generator
-ENTRYPOINT [ "bash",  "/eventgen/app/run.sh"]
+ENTRYPOINT [ "bash", "/eventgen/app/run.sh"]

@@ -17,6 +17,21 @@ def get_config():
     # SFTP PORT
     parser.add_argument('--sftp_port', type=int, default=22)
 
+    # MYSQL HOST
+    parser.add_argument('--mysql_host', type=str)
+
+    # MYSQL PORT
+    parser.add_argument('--mysql_port', type=int, default=3306)
+
+    # MYSQL USER
+    parser.add_argument('--mysql_user', type=str, default='root')
+
+    # MYSQL PASSWORD
+    parser.add_argument('--mysql_pass', type=str)
+
+    # MYSQL DATABASE
+    parser.add_argument('--mysql_database', type=str, default='football')
+
     # OUTPUT EACH FILE ELEMENT
     parser.add_argument('--file_element', type=int, default=100)
 
@@ -28,6 +43,9 @@ def get_config():
 
     # OUTPUT PREFIX
     parser.add_argument('--output_prefix', type=str)
+
+    # DATA DIRECTORY
+    parser.add_argument('--data_dir', type=str, default='/eventgen/resources/data')
 
     # TMP DIRECTORY
     parser.add_argument('--tmp_dir', type=str, default='/tmp/sftp_cache/')
