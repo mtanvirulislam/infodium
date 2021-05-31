@@ -8,5 +8,5 @@ if __name__ == '__main__':
     # Load data to MySql
     load_data_mysql(config)
 
-    # Send events to sftp
-    send_event_sftp(config)
+    # Send events to kafka
+    send_event_kafka(config)
