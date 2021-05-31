@@ -5,9 +5,9 @@ from os import path
 
 import mysql.connector as con
 import pandas as pd
+from kafka.producer import KafkaProducer
 
 from config.connector import *
-from config.functions import *
 
 
 def load_data_mysql(config):
@@ -41,55 +41,24 @@ def load_data_mysql(config):
         )
 
 
-def send_event_sftp(config):
+def send_event_kafka(config):
     print("Start event generator")
-    count = 0
 
-    # Clear tmp dir
-    tmp_dir = config.tmp_dir
-    clear_tmp_sftp(tmp_dir)
+    total_events = 0
 
     # Read input CSV
     reader = csv.DictReader(
         open("{data_dir}/sftp/{file}".format(data_dir=config.data_dir, file=config.input_file), 'r')
     )
 
-    # Create Initial output file
-    output_json = open(tmp_dir + get_output_file_name(config.output_prefix), 'w')
+    producer = KafkaProducer(
+        bootstrap_servers='{host}:{port}'.format(host=config.kafka_host, port=config.kafka_port),
+        api_version=(0, 10, 1)
+    )
 
-    # Connect with SFTP
-    sftp = get_sftp(config)
-    print("Connection succesfully stablished ... ")
+    for row in reader:
+        producer.send(config.kafka_topic, bytes(str(row), 'utf-8'))
+        total_events += 1
+        time.sleep(config.delay)
 
-    # In case of single_file_output convert the csv to a json file with all the records
-    if config.single_file_output:
-        for row in reader:
-            # Write to local tmp directory
-            row_writer(row, output_json)
-
-        # Put file to SFTP and clear local tmp dir
-        sftp_put(sftp, output_json, tmp_dir)
-
-    # If not single_file_output the output depends on file_element(number of records that each file will contain)
-    else:
-        for row in reader:
-            # Write to local tmp directory
-            row_writer(row, output_json)
-            count += 1
-
-            if config.file_element == count:
-                # Put previous file to SFTP and clear local tmp dir
-                sftp_put(sftp, output_json, tmp_dir)
-
-                # Set row count to 0 and wait 2sec(default)
-                count = 0
-                time.sleep(config.delay)
-
-                # Create new file
-                output_json = open(tmp_dir + get_output_file_name(config.output_prefix), 'w')
-
-        # Put last file to SFTP and clear local tmp dir
-        sftp_put(sftp, output_json, tmp_dir)
-
-    sftp.close()
-    print("Connection closed!!")
+    print("Total Events: {total}".format(total=total_events))
