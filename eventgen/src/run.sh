@@ -2,7 +2,7 @@
 
 echo "Running app..."
 echo
-python /eventgen/app/main.py \
+ python -u /eventgen/app/main.py \
     --mysql_host        $MYSQL_HOST \
     --mysql_user        $MYSQL_USER \
     --mysql_pass        $MYSQL_PASS \
@@ -12,7 +12,6 @@ python /eventgen/app/main.py \
     --kafka_topic       $KAFKA_TOPIC \
     --data_dir          $DATA_DIR \
     --input_file        $INPUT_FILE \
-    --delay             $DELAY \
-    | cat
+    --delay             $DELAY 
 
 echo "Finished app!!"

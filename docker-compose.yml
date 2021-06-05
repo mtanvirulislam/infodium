@@ -32,19 +32,65 @@ services:
       KAFKA_TRANSACTION_STATE_LOG_REPLICATION_FACTOR: 1
       KAFKA_GROUP_INITIAL_REBALANCE_DELAY_MS: 100
 
-  schema-registry:
-    image: confluentinc/cp-schema-registry:5.4.1
-    container_name: schema-registry
-    networks:
-      - internal
+  kafka-connect:
+    image: confluentinc/cp-kafka-connect-base:5.4.1
+    container_name: kafka-connect
+    networks: 
+      - internal 
     depends_on:
-      - zookeeper
       - kafka
+      - s3-storage
     ports:
-      - 8081:8081
+      - 8083:8083
     environment:
-      SCHEMA_REGISTRY_HOST_NAME: schema-registry
-      SCHEMA_REGISTRY_KAFKASTORE_CONNECTION_URL: zookeeper:2181
+      CONNECT_BOOTSTRAP_SERVERS: "kafka:29092"
+      CONNECT_REST_ADVERTISED_HOST_NAME: "kafka-connect"
+      CONNECT_REST_PORT: 8083
+      CONNECT_GROUP_ID: kafka-connect
+      CONNECT_CONNECTOR_CLIENT_CONFIG_OVERRIDE_POLICY: 'All'
+      CONNECT_CONFIG_STORAGE_TOPIC: _kafka-connect-configs
+      CONNECT_OFFSET_STORAGE_TOPIC: _kafka-connect-offsets
+      CONNECT_STATUS_STORAGE_TOPIC: _kafka-connect-status
+      CONNECT_KEY_CONVERTER: org.apache.kafka.connect.json.JsonConverter
+      CONNECT_VALUE_CONVERTER: org.apache.kafka.connect.json.JsonConverter
+      CONNECT_INTERNAL_KEY_CONVERTER: "org.apache.kafka.connect.json.JsonConverter"
+      CONNECT_INTERNAL_VALUE_CONVERTER: "org.apache.kafka.connect.json.JsonConverter"
+      CONNECT_LOG4J_ROOT_LOGLEVEL: "INFO"
+      CONNECT_LOG4J_LOGGERS: "org.apache.kafka.connect.runtime.rest=WARN,org.reflections=ERROR"
+      CONNECT_CONFIG_STORAGE_REPLICATION_FACTOR: "1"
+      CONNECT_OFFSET_STORAGE_REPLICATION_FACTOR: "1"
+      CONNECT_STATUS_STORAGE_REPLICATION_FACTOR: "1"
+      CONNECT_PLUGIN_PATH: '/usr/share/java,/usr/share/confluent-hub-components/,/connectors/'
+    volumes:
+      - $PWD/kafka-connect/connectors:/connectors
+      - $PWD/kafka-connect/aws_credentials:/root/.aws/credentials
+    # In the command section, $ are replaced with $$ to avoid the error 'Invalid interpolation format for "command" option'
+    command: 
+      - bash 
+      - -c 
+      - |
+        # Nasty hack for ECS
+        echo '127.0.0.1 kafka-connect' >> /etc/hosts
+        #
+        echo "Installing connector plugins"
+        confluent-hub install --no-prompt confluentinc/kafka-connect-s3:5.4.1
+        #
+        echo "Launching Kafka Connect worker"
+        /etc/confluent/docker/run & 
+        #
+        echo "Waiting for Kafka Connect to start listening on localhost ⏳"
+        while : ; do
+          curl_status=$$(curl -s -o /dev/null -w %{http_code} http://localhost:8083/connectors)
+          echo -e $$(date) " Kafka Connect listener HTTP state: " $$curl_status " (waiting for 200)"
+          if [ $$curl_status -eq 200 ] ; then
+            break
+          fi
+          sleep 5 
+        done
+
+        bash /connectors/command.sh
+
+        sleep infinity
   #-------------------------------------------------------------------#
   #----------------------------- AWS S3 ------------------------------#
   aws-s3:
@@ -61,7 +107,7 @@ services:
     ports:
       - 4566:4566
     volumes:
-      - "./volume/s3-storage/.init:/docker-entrypoint-initaws.d"
+      - "./aws/s3:/docker-entrypoint-initaws.d"
       - "./volume/s3-storage/.localstack:/tmp/localstack"
 
   #-------------------------------------------------------------------#
@@ -122,7 +168,11 @@ services:
       - internal
     depends_on:
       - mysql
+      - aws-s3
       - kafka
+      - elasticsearch
+      - kibana
+      - kafka-connect
     environment:
       - MYSQL_HOST=mysql
       - MYSQL_USER=root
@@ -132,8 +182,8 @@ services:
       - KAFKA_PORT=29092
       - KAFKA_TOPIC=football
       - DATA_DIR=/eventgen/resources/data
-      - INPUT_FILE=event_test.csv
-      - DELAY=1
+      - INPUT_FILE=events.csv
+      - DELAY=2
 #-------------------------------------------------------------------#
 #----------------------------- NETWORKS ----------------------------#
 networks:
