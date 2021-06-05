@@ -1,9 +1,12 @@
+
 from config.config_parser import *
+from config.utils import *
 from sinks import *
 
 if __name__ == '__main__':
     config = get_config()
-    print("App args: \n{args}".format(args=config))
+
+    printlog("App args: \n{args}".format(args=config))
 
     # Load data to MySql
     load_data_mysql(config)

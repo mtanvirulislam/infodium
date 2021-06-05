@@ -1,4 +1,5 @@
 import csv
+import json
 import time
 from glob import glob
 from os import path
@@ -8,10 +9,11 @@ import pandas as pd
 from kafka.producer import KafkaProducer
 
 from config.connector import *
+from config.utils import printlog
 
 
 def load_data_mysql(config):
-    print("Start mysql data loader")
+    printlog("Start mysql data loader")
 
     # Create initial connection
     connection = con.connect(
@@ -31,10 +33,10 @@ def load_data_mysql(config):
     # Get files to ingest
     files = glob("{data_dir}/mysql/**/*.csv".format(data_dir=config.data_dir), recursive=True)
 
-    print("Files load to MySql:")
+    printlog("Files load to MySql:")
     # Save data to MySql table
     for file in files:
-        print("- {path}".format(path=file))
+        print("\t{path}".format(path=file))
         table = path.splitext(path.basename(file))[0]
         pd.read_csv(file).to_sql(
             table, con=engine, if_exists='replace', index=False
@@ -42,23 +44,32 @@ def load_data_mysql(config):
 
 
 def send_event_kafka(config):
-    print("Start event generator")
+    printlog("Start event generator")
 
     total_events = 0
 
+    printlog(
+        "Files send to Kafka: \n {file}".format(
+            file="\t{data_dir}/kafka/{file}".format(data_dir=config.data_dir, file=config.input_file)
+        )
+    )
+
     # Read input CSV
     reader = csv.DictReader(
-        open("{data_dir}/sftp/{file}".format(data_dir=config.data_dir, file=config.input_file), 'r')
+        open("{data_dir}/kafka/{file}".format(data_dir=config.data_dir, file=config.input_file), 'r')
     )
 
     producer = KafkaProducer(
         bootstrap_servers='{host}:{port}'.format(host=config.kafka_host, port=config.kafka_port),
-        api_version=(0, 10, 1)
+        api_version=(0, 10, 1),
+        value_serializer=lambda v: json.dumps(v).encode('utf-8'),
+        key_serializer=lambda v: json.dumps(v).encode('utf-8')
     )
 
     for row in reader:
-        producer.send(config.kafka_topic, bytes(str(row), 'utf-8'))
+        producer.send(config.kafka_topic, row)
         total_events += 1
+        printlog("Event ID: {id} - Event number: {number}".format(id=row.get("id_event"), number=total_events))
         time.sleep(config.delay)
 
-    print("Total Events: {total}".format(total=total_events))
+    printlog("Total Events: {total}".format(total=total_events))
