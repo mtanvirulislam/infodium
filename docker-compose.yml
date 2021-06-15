@@ -184,6 +184,45 @@ services:
       - DATA_DIR=/eventgen/resources/data
       - INPUT_FILE=events.csv
       - DELAY=2
+  
+  
+  jobmanager:
+    image: flink:1.13.0-scala_2.11
+    container_name: "flink-jobmanager"
+    depends_on: 
+      - kafka
+      - eventgen
+      - mysql
+    ports:
+      - "8081:8081"
+    networks: 
+      - internal
+    command: standalone-job --job-classname infodium.flink.StreamingJob
+    volumes:
+      - ./flink/job:/opt/flink/usrlib
+    environment:
+      - |
+        FLINK_PROPERTIES=
+        jobmanager.rpc.address: jobmanager
+        parallelism.default: 1        
+
+  taskmanager:
+    image: flink:1.13.0-scala_2.11
+    container_name: "flink-taskmanager"
+    depends_on:
+      - jobmanager
+    networks: 
+      - internal
+    command: taskmanager
+    scale: 1
+    volumes:
+      - ./flink/job:/opt/flink/usrlib
+    environment:
+      - |
+        FLINK_PROPERTIES=
+        jobmanager.rpc.address: jobmanager
+        taskmanager.numberOfTaskSlots: 4
+        parallelism.default: 1
 #-------------------------------------------------------------------#
 #----------------------------- NETWORKS ----------------------------#
 networks:
