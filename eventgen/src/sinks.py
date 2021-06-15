@@ -3,6 +3,7 @@ import json
 import time
 from glob import glob
 from os import path
+from datetime import datetime
 
 import mysql.connector as con
 import pandas as pd
@@ -59,6 +60,7 @@ def send_event_kafka(config):
         open("{data_dir}/kafka/{file}".format(data_dir=config.data_dir, file=config.input_file), 'r')
     )
 
+    # Create kafka producer
     producer = KafkaProducer(
         bootstrap_servers='{host}:{port}'.format(host=config.kafka_host, port=config.kafka_port),
         api_version=(0, 10, 1),
@@ -66,10 +68,15 @@ def send_event_kafka(config):
         key_serializer=lambda v: json.dumps(v).encode('utf-8')
     )
 
+    # Send data to kafka topic
     for row in reader:
+        # Add event timestamp
+        row["event_time"] = datetime.now().strftime("%Y-%m-%d %H:%M:%S")
+
         producer.send(config.kafka_topic, row)
         total_events += 1
-        printlog("Event ID: {id} - Event number: {number}".format(id=row.get("id_event"), number=total_events))
+        
+        printlog(f"Event ID: {row.get('id_event')} - Event number: {total_events} - Event time: {row.get('event_time')}")
         time.sleep(config.delay)
 
     printlog("Total Events: {total}".format(total=total_events))

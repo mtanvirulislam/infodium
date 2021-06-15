@@ -7,3 +7,5 @@ volume
 **/__pycache__/
 **/__init__.py
 .Ds_Store
+**/*iml
+**/target
