@@ -1,0 +1,12 @@
+FROM maven:3.6.2-jdk-8-slim AS MAVEN_BUILD
+
+COPY ./pom.xml /build/
+COPY ./src /build/src/
+
+WORKDIR /build/
+RUN mvn clean package
+
+FROM docker.io/bitnami/spark:3
+
+COPY --from=MAVEN_BUILD /build/target/*jar-with-dependencies.jar /opt
+COPY ./script/run-spark-job.sh /opt
