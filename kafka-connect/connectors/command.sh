@@ -5,7 +5,7 @@ curl -s -X PUT -H  "Content-Type:application/json" http://localhost:8083/connect
     "tasks.max":"1",
     "topics":"football",
     "store.url": "http://s3-storage:4566",
-    "s3.bucket.name":"football",
+    "s3.bucket.name":"raw-data",
     "s3.region":"us-east-1",
     "s3.part.size":"5242880",
     "flush.size":"100000",
