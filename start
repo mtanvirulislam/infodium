@@ -1,0 +1,18 @@
+echo "Starting infodium...."
+docker compose up -d
+
+echo "Waiting for kibana service up...."
+while : ; do
+    curl_status=$(curl -s -o /dev/null -w %{http_code} http://localhost:5601/app/home/)
+    echo $(date) " Kibana listener HTTP state: " $curl_status " (waiting for 200)"
+    if [ $curl_status -eq 200 ] ; then
+      break
+    fi
+    sleep 5 
+done
+
+echo "Import Kibana Dashboard"
+curl -X POST "localhost:5601/api/saved_objects/_import" -H "kbn-xsrf: true" --form file=@./kibana/dashboard/infodium.ndjson
+
+echo
+echo "Started!!"

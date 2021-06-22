@@ -1,0 +1,4 @@
+echo "Stoping infodium...."
+docker compose down
+
+echo "Stopped!"

@@ -35,8 +35,8 @@ services:
   kafka-connect:
     image: confluentinc/cp-kafka-connect-base:5.4.1
     container_name: kafka-connect
-    networks: 
-      - internal 
+    networks:
+      - internal
     depends_on:
       - kafka
       - s3-storage
@@ -47,7 +47,7 @@ services:
       CONNECT_REST_ADVERTISED_HOST_NAME: "kafka-connect"
       CONNECT_REST_PORT: 8083
       CONNECT_GROUP_ID: kafka-connect
-      CONNECT_CONNECTOR_CLIENT_CONFIG_OVERRIDE_POLICY: 'All'
+      CONNECT_CONNECTOR_CLIENT_CONFIG_OVERRIDE_POLICY: "All"
       CONNECT_CONFIG_STORAGE_TOPIC: _kafka-connect-configs
       CONNECT_OFFSET_STORAGE_TOPIC: _kafka-connect-offsets
       CONNECT_STATUS_STORAGE_TOPIC: _kafka-connect-status
@@ -60,14 +60,14 @@ services:
       CONNECT_CONFIG_STORAGE_REPLICATION_FACTOR: "1"
       CONNECT_OFFSET_STORAGE_REPLICATION_FACTOR: "1"
       CONNECT_STATUS_STORAGE_REPLICATION_FACTOR: "1"
-      CONNECT_PLUGIN_PATH: '/usr/share/java,/usr/share/confluent-hub-components/,/connectors/'
+      CONNECT_PLUGIN_PATH: "/usr/share/java,/usr/share/confluent-hub-components/,/connectors/"
     volumes:
       - $PWD/kafka-connect/connectors:/connectors
       - $PWD/kafka-connect/aws_credentials:/root/.aws/credentials
     # In the command section, $ are replaced with $$ to avoid the error 'Invalid interpolation format for "command" option'
-    command: 
-      - bash 
-      - -c 
+    command:
+      - bash
+      - -c
       - |
         # Nasty hack for ECS
         echo '127.0.0.1 kafka-connect' >> /etc/hosts
@@ -102,13 +102,13 @@ services:
       - SERVICES=s3
       - DEBUG=1
       - DEFAULT_REGION=us-east-1
-      - AWS_ACCESS_KEY_ID=test
-      - AWS_SECRET_ACCESS_KEY=test
+      - AWS_ACCESS_KEY_ID=infodium
+      - AWS_SECRET_ACCESS_KEY=infodium
     ports:
       - 4566:4566
     volumes:
       - "./aws/s3:/docker-entrypoint-initaws.d"
-      - "./volume/s3-storage/.localstack:/tmp/localstack"
+      #- "./volume/s3-storage/.localstack:/tmp/localstack"
 
   #-------------------------------------------------------------------#
   #------------------------- ELASSTICSEARCH --------------------------#
@@ -127,8 +127,8 @@ services:
       nofile:
         soft: 65536
         hard: 65536
-    volumes:
-      - ./volume/elasticsearch:/usr/share/elasticsearch/data
+    #volumes:
+      #- ./volume/elasticsearch:/usr/share/elasticsearch/data
     ports:
       - 9200:9200
       - 9300:9300
@@ -184,8 +184,8 @@ services:
       - DATA_DIR=/eventgen/resources/data
       - INPUT_FILE=events.csv
       - DELAY=2
-  
-  
+  #-------------------------------------------------------------------#
+  #------------------------------- FLINK -----------------------------#
   jobmanager:
     image: flink:1.13.0-scala_2.11
     container_name: "flink-jobmanager"
@@ -204,7 +204,7 @@ services:
       - |
         FLINK_PROPERTIES=
         jobmanager.rpc.address: jobmanager
-        parallelism.default: 1        
+        parallelism.default: 1
 
   taskmanager:
     image: flink:1.13.0-scala_2.11
